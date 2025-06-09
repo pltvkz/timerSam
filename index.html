@@ -1,20 +1,183 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Табата Таймер</title>
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Табата таймер</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to bottom right, #6ef3c5, #74e2d1);
+      color: #222;
+      text-align: center;
+    }
+
+    .container {
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .timer-display {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+    }
+
+    .section {
+      background-color: #111;
+      color: white;
+      padding: 1rem;
+      border-radius: 1rem;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .section-title {
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      color: #ccc;
+    }
+
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .setting-box {
+      background: #222;
+      padding: 1rem;
+      border-radius: 0.75rem;
+    }
+
+    .setting-title {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .setting-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    input[type=number] {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      text-align: center;
+    }
+
+    .start-button {
+      margin-top: 2rem;
+      background: #6ef3c5;
+      border: none;
+      color: black;
+      font-size: 2rem;
+      padding: 1rem 2rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .start-button:hover {
+      background: #4fe2b1;
+    }
+  </style>
 </head>
 <body>
-  <h1>Табата Таймер</h1>
-  <div id="timer">00:00</div>
-  <button id="start">Старт</button>
-  <script src="script.js"></script>
+  <div class="container">
+    <h1>Табата таймер</h1>
+    <div class="timer-display" id="timer">00:00</div>
+
+    <div class="section">
+      <div class="section-title">Настройки таймера</div>
+      <div class="settings">
+        <div class="setting-box">
+          <div class="setting-title">Время работы (сек)</div>
+          <input type="number" id="input-work" value="45" min="1" />
+        </div>
+        <div class="setting-box">
+          <div class="setting-title">Время отдыха (сек)</div>
+          <input type="number" id="input-rest" value="15" min="1" />
+        </div>
+        <div class="setting-box">
+          <div class="setting-title">Количество упражнений</div>
+          <input type="number" id="input-sets" value="8" min="1" />
+        </div>
+        <div class="setting-box">
+          <div class="setting-title">Количество кругов</div>
+          <input type="number" id="input-rounds" value="1" min="1" />
+        </div>
+      </div>
+    </div>
+
+    <button class="start-button" onclick="startTimer()">▶ Старт</button>
+  </div>
+
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
+    let phase = 'work';
+    let currentSet = 1;
+    let currentRound = 1;
+    let timeLeft = 0;
+    let timerInterval;
+
+    function startTimer() {
+      const work = parseInt(document.getElementById("input-work").value);
+      const rest = parseInt(document.getElementById("input-rest").value);
+      const sets = parseInt(document.getElementById("input-sets").value);
+      const rounds = parseInt(document.getElementById("input-rounds").value);
+
+      phase = 'work';
+      currentSet = 1;
+      currentRound = 1;
+      timeLeft = work;
+      updateDisplay(timeLeft);
+
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateDisplay(timeLeft);
+
+        if (timeLeft <= 0) {
+          if (phase === 'work') {
+            phase = 'rest';
+            timeLeft = rest;
+          } else {
+            if (currentSet < sets) {
+              currentSet++;
+              phase = 'work';
+              timeLeft = work;
+            } else if (currentRound < rounds) {
+              currentRound++;
+              currentSet = 1;
+              phase = 'work';
+              timeLeft = work;
+            } else {
+              clearInterval(timerInterval);
+              alert("Тренировка завершена!");
+              return;
+            }
+          }
+        }
+      }, 1000);
+    }
+
+    function updateDisplay(time) {
+      const minutes = String(Math.floor(time / 60)).padStart(2, '0');
+      const seconds = String(time % 60).padStart(2, '0');
+      document.getElementById("timer").textContent = `${minutes}:${seconds}`;
     }
   </script>
 </body>
