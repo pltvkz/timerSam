@@ -1,10 +1,10 @@
 {
-  "name": "Табата таймер",
-  "short_name": "Таймер",
+  "name": "Timer Sam",
+  "short_name": "Timer Sam",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#6ef3c5",
-  "theme_color": "#6ef3c5",
+  "background_color": "#000000",
+  "theme_color": "#00ffcc",
   "icons": [
     {
       "src": "icon-192.png",
