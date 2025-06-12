@@ -4,34 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Табата таймер</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6ef3c5">
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-
     body {
       font-family: sans-serif;
       background: linear-gradient(to bottom right, #6ef3c5, #74e2d1);
       color: #222;
       text-align: center;
     }
-
     .container {
       padding: 2rem 1rem;
     }
-
     h1 {
       font-size: 1.8rem;
       margin-bottom: 1rem;
     }
-
     .timer-display {
       font-size: 5rem;
       margin-bottom: 1rem;
     }
-
     .section {
       background-color: #111;
       color: white;
@@ -40,36 +37,26 @@
       max-width: 600px;
       margin: auto;
     }
-
     .section-title {
       margin-bottom: 1rem;
       font-size: 1rem;
       color: #ccc;
     }
-
     .settings {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 1rem;
       margin-top: 1rem;
     }
-
     .setting-box {
       background: #222;
       padding: 1rem;
       border-radius: 0.75rem;
     }
-
     .setting-title {
       font-size: 1rem;
       margin-bottom: 0.5rem;
     }
-
-    .setting-value {
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
-
     input[type=number] {
       width: 100%;
       padding: 0.5rem;
@@ -78,21 +65,23 @@
       border-radius: 0.5rem;
       text-align: center;
     }
-
-    .start-button {
-      margin-top: 2rem;
+    .start-button, .save-button, .end-button {
+      margin-top: 1rem;
       background: #6ef3c5;
       border: none;
       color: black;
-      font-size: 2rem;
-      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      padding: 0.75rem 1.5rem;
       border-radius: 0.5rem;
       cursor: pointer;
       transition: background 0.3s;
+      margin-right: 1rem;
     }
-
-    .start-button:hover {
+    .start-button:hover, .save-button:hover, .end-button:hover {
       background: #4fe2b1;
+    }
+    .rest-phase {
+      background-color: #ffb3b3 !important;
     }
   </style>
 </head>
@@ -100,8 +89,7 @@
   <div class="container">
     <h1>Табата таймер</h1>
     <div class="timer-display" id="timer">00:00</div>
-
-    <div class="section">
+    <div class="section" id="settings-section">
       <div class="section-title">Настройки таймера</div>
       <div class="settings">
         <div class="setting-box">
@@ -122,62 +110,129 @@
         </div>
       </div>
     </div>
-
     <button class="start-button" onclick="startTimer()">▶ Старт</button>
+    <button class="save-button" onclick="saveWorkout()">💾 Сохранить</button>
+    <button class="end-button" onclick="endWorkout()">⏹ Завершить</button>
   </div>
 
+  <audio id="sound-alert" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+  <audio id="yerzhan" src="https://www.myinstants.com/media/sounds/yerzhan.mp3"></audio>
+
   <script>
-    let phase = 'work';
+    let phase = 'prepare';
     let currentSet = 1;
     let currentRound = 1;
-    let timeLeft = 0;
+    let timeLeft = 5;
+    let work = 0;
+    let rest = 0;
+    let sets = 0;
+    let rounds = 0;
     let timerInterval;
 
     function startTimer() {
-      const work = parseInt(document.getElementById("input-work").value);
-      const rest = parseInt(document.getElementById("input-rest").value);
-      const sets = parseInt(document.getElementById("input-sets").value);
-      const rounds = parseInt(document.getElementById("input-rounds").value);
+      work = parseInt(document.getElementById("input-work").value);
+      rest = parseInt(document.getElementById("input-rest").value);
+      sets = parseInt(document.getElementById("input-sets").value);
+      rounds = parseInt(document.getElementById("input-rounds").value);
 
-      phase = 'work';
+      phase = 'prepare';
+      timeLeft = 5;
       currentSet = 1;
       currentRound = 1;
-      timeLeft = work;
       updateDisplay(timeLeft);
+      document.body.classList.remove('rest-phase');
 
       if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        updateDisplay(timeLeft);
+      timerInterval = setInterval(tick, 1000);
+    }
 
-        if (timeLeft <= 0) {
-          if (phase === 'work') {
-            phase = 'rest';
-            timeLeft = rest;
+    function tick() {
+      timeLeft--;
+      updateDisplay(timeLeft);
+
+      if (timeLeft <= 0) {
+        if (phase === 'prepare') {
+          phase = 'work';
+          timeLeft = work;
+          document.body.classList.remove('rest-phase');
+        } else if (phase === 'work') {
+          phase = 'rest-pre';
+          timeLeft = 5;
+          playBeep();
+        } else if (phase === 'rest-pre') {
+          phase = 'rest';
+          timeLeft = rest;
+          document.body.classList.add('rest-phase');
+        } else if (phase === 'rest') {
+          playYerzhan();
+          if (currentSet < sets) {
+            currentSet++;
+            phase = 'prepare';
+            timeLeft = 5;
+            document.body.classList.remove('rest-phase');
+          } else if (currentRound < rounds) {
+            currentRound++;
+            currentSet = 1;
+            phase = 'prepare';
+            timeLeft = 5;
+            document.body.classList.remove('rest-phase');
           } else {
-            if (currentSet < sets) {
-              currentSet++;
-              phase = 'work';
-              timeLeft = work;
-            } else if (currentRound < rounds) {
-              currentRound++;
-              currentSet = 1;
-              phase = 'work';
-              timeLeft = work;
-            } else {
-              clearInterval(timerInterval);
-              alert("Тренировка завершена!");
-              return;
-            }
+            clearInterval(timerInterval);
+            alert("Тренировка завершена!");
           }
         }
-      }, 1000);
+      }
     }
 
     function updateDisplay(time) {
       const minutes = String(Math.floor(time / 60)).padStart(2, '0');
       const seconds = String(time % 60).padStart(2, '0');
       document.getElementById("timer").textContent = `${minutes}:${seconds}`;
+    }
+
+    function playBeep() {
+      document.getElementById("sound-alert").play();
+    }
+
+    function playYerzhan() {
+      document.getElementById("yerzhan").play();
+    }
+
+    function saveWorkout() {
+      const config = {
+        work: document.getElementById("input-work").value,
+        rest: document.getElementById("input-rest").value,
+        sets: document.getElementById("input-sets").value,
+        rounds: document.getElementById("input-rounds").value,
+      };
+      localStorage.setItem("tabataConfig", JSON.stringify(config));
+      alert("Настройки сохранены!");
+    }
+
+    function loadWorkout() {
+      const config = JSON.parse(localStorage.getItem("tabataConfig"));
+      if (config) {
+        document.getElementById("input-work").value = config.work;
+        document.getElementById("input-rest").value = config.rest;
+        document.getElementById("input-sets").value = config.sets;
+        document.getElementById("input-rounds").value = config.rounds;
+      }
+    }
+
+    function endWorkout() {
+      if (timerInterval) clearInterval(timerInterval);
+      document.getElementById("timer").textContent = "00:00";
+      document.body.classList.remove('rest-phase');
+    }
+
+    loadWorkout();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').then(function(reg) {
+        console.log('Service Worker зарегистрирован', reg);
+      }).catch(function(err) {
+        console.warn('Ошибка при регистрации Service Worker', err);
+      });
     }
   </script>
 </body>
